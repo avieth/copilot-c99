@@ -46,8 +46,15 @@ mkextcpydecln (External name cpyname ty) = decln where
 --
 -- Here we tack on a 0 at the end of the array initializer. This value will
 -- never be read before it is written.
-mkbuffdecln :: Id -> Type a -> [a] -> C.Decln
-mkbuffdecln sid ty xs = C.VarDecln (Just C.Static) cty name initvals where
+--
+-- Also, declare a static global variable with its size.
+-- This is kinda stupid but it was easier than refactoring the compile pipeline
+-- to track the buffer size of each stream here in Haskell.
+mkbuffdeclns :: Id -> Type a -> [a] -> [C.Decln]
+mkbuffdeclns sid ty xs = [lengthdecln, vardecln]
+  where
+  lengthdecln = C.VarDecln (Just C.Static) (C.TypeSpec C.Unsigned_Int) (name ++ "_size") (Just $ C.InitExpr $ C.LitInt $ fromIntegral buffsize)
+  vardecln = C.VarDecln (Just C.Static) cty name initvals
   name     = streamname sid
   cty      = C.Array (transtype ty) (Just $ C.LitInt $ fromIntegral buffsize)
   buffsize = length xs + 1

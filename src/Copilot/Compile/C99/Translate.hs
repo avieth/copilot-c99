@@ -28,7 +28,10 @@ transexpr (Drop _ amount sid) = do
       indexvar = indexname sid
       index  = case amount of
         0 -> C.Ident indexvar
-        n -> C.Ident indexvar C..+ C.LitInt (fromIntegral n)
+        -- Indexing in a drop must respect the circular array used to contain
+        -- the stream.
+        n -> (C.Ident indexvar C..+ C.LitInt (fromIntegral n))
+             C..% C.Ident (var ++ "_size")
   return $ C.Index (C.Ident var) index
 
 transexpr (ExternVar _ name _) = return $ C.Ident (excpyname name)
